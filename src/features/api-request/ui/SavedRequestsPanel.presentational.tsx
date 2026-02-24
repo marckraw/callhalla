@@ -1,6 +1,15 @@
 import type { SavedRequest } from "@/shared";
 import { Button, Panel, TextInput } from "@/shared";
 
+const formatUpdatedAt = (value: string) => {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return `${parsed.toISOString().replace("T", " ").slice(0, 19)} UTC`;
+};
+
 type SavedRequestsPanelProps = {
   items: SavedRequest[];
   searchQuery: string;
@@ -67,7 +76,7 @@ export const SavedRequestsPanel = ({
                     {item.draft.method} {item.draft.url}
                   </p>
                 </div>
-                <p className="text-xs text-[var(--text-muted)]">{new Date(item.updatedAt).toLocaleString()}</p>
+                <p className="text-xs text-[var(--text-muted)]">{formatUpdatedAt(item.updatedAt)}</p>
               </div>
               {item.tags.length > 0 ? (
                 <div className="flex flex-wrap gap-1">

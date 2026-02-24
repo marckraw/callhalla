@@ -17,8 +17,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={spaceGrotesk.className}>{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <body className={spaceGrotesk.className} suppressHydrationWarning>
+        {children}
+      </body>
     </html>
   );
 }

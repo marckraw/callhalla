@@ -7,6 +7,11 @@ import type {
 
 const METHODS_WITHOUT_BODY = new Set<HttpMethod>(["GET", "HEAD"]);
 
+type BuildProxyRequestPayloadOptions = {
+  requireHttpUrl?: boolean;
+  validateJsonBody?: boolean;
+};
+
 const canUseBody = (method: HttpMethod) => !METHODS_WITHOUT_BODY.has(method);
 
 const isHttpUrl = (url: string) => {
@@ -18,12 +23,20 @@ const isHttpUrl = (url: string) => {
   }
 };
 
-export const buildProxyRequestPayload = (draft: RequestDraft): RequestPreparationResult => {
+export const buildProxyRequestPayload = (
+  draft: RequestDraft,
+  options: BuildProxyRequestPayloadOptions = {},
+): RequestPreparationResult => {
+  const { requireHttpUrl = true, validateJsonBody = true } = options;
   const errors: string[] = [];
   const normalizedUrl = draft.url.trim();
 
-  if (!isHttpUrl(normalizedUrl)) {
-    errors.push("URL must be a valid http:// or https:// address.");
+  if (requireHttpUrl) {
+    if (!isHttpUrl(normalizedUrl)) {
+      errors.push("URL must be a valid http:// or https:// address.");
+    }
+  } else if (normalizedUrl.length === 0) {
+    errors.push("URL is required.");
   }
 
   const headers: Record<string, string> = {};
@@ -48,7 +61,7 @@ export const buildProxyRequestPayload = (draft: RequestDraft): RequestPreparatio
 
     const normalizedKey = key.toLowerCase();
     if (seenHeaders.has(normalizedKey)) {
-      errors.push(`Header \"${key}\" is duplicated.`);
+      errors.push(`Header "${key}" is duplicated.`);
       continue;
     }
 
@@ -64,16 +77,21 @@ export const buildProxyRequestPayload = (draft: RequestDraft): RequestPreparatio
   const trimmedBody = draft.bodyText.trim();
 
   if (draft.bodyMode === "json" && trimmedBody.length > 0) {
-    try {
-      body = JSON.stringify(JSON.parse(trimmedBody));
-      const hasContentType = Object.keys(headers).some(
-        (headerName) => headerName.toLowerCase() === "content-type",
-      );
-      if (!hasContentType) {
-        headers["content-type"] = "application/json";
+    if (validateJsonBody) {
+      try {
+        body = JSON.stringify(JSON.parse(trimmedBody));
+      } catch {
+        errors.push("JSON body is invalid.");
       }
-    } catch {
-      errors.push("JSON body is invalid.");
+    } else {
+      body = draft.bodyText;
+    }
+
+    const hasContentType = Object.keys(headers).some(
+      (headerName) => headerName.toLowerCase() === "content-type",
+    );
+    if (!hasContentType) {
+      headers["content-type"] = "application/json";
     }
   }
 

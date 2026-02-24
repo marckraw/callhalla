@@ -129,15 +129,18 @@ export const ApiRequestWorkbench = () => {
     setRuntimeError(null);
     setValidationErrors([]);
 
-    const preparation = buildProxyRequestPayload(draft);
-    if (!preparation.ok) {
-      setValidationErrors(preparation.errors);
+    const validation = buildProxyRequestPayload(draft, {
+      requireHttpUrl: false,
+      validateJsonBody: false,
+    });
+    if (!validation.ok) {
+      setValidationErrors(validation.errors);
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const nextResponse = await executeProxyRequest(preparation.payload);
+      const nextResponse = await executeProxyRequest(draft);
       setResponse(nextResponse);
     } catch (error) {
       setRuntimeError(error instanceof Error ? error.message : "Unknown request error");
@@ -154,7 +157,10 @@ export const ApiRequestWorkbench = () => {
       return;
     }
 
-    const validation = buildProxyRequestPayload(draft);
+    const validation = buildProxyRequestPayload(draft, {
+      requireHttpUrl: false,
+      validateJsonBody: false,
+    });
     if (!validation.ok) {
       setValidationErrors(validation.errors);
       return;

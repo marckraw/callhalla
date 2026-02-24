@@ -43,6 +43,7 @@ Updated: 2026-02-24
 - Widget: request console shell and page composition.
 - Feature: request composer, proxy execution client, response rendering.
 - App route: `POST /api/proxy` executes outbound requests server-side.
+- Proxy execution resolves workspace environment variables (`{{key}}`) server-side before dispatch.
 
 ### Auth and persistence
 
@@ -51,6 +52,8 @@ Updated: 2026-02-24
 - Saved request API: `GET/POST /api/saved-requests`, `DELETE /api/saved-requests/:id`.
 - Supabase table `public.saved_requests` is protected by RLS (`auth.uid() = user_id`).
 - Saved requests include flat tags and client-side search over name, URL, method, and tags.
+- Workspace context API: `/api/workspace-context` and `/api/workspaces/*` for active workspace/environment and variable management.
+- Requests are scoped to active workspace via `public.user_settings`.
 
 ## CORS Strategy
 

@@ -84,7 +84,7 @@ export const RequestComposer = ({
             </SelectContent>
           </Select>
           <Input
-            placeholder="https://api.example.com/v1/resources"
+            placeholder="https://api.example.com/v1/resources or {{base_url}}/resources"
             value={url}
             onChange={(event) => onUrlChange(event.target.value)}
           />

@@ -81,4 +81,27 @@ describe("buildProxyRequestPayload", () => {
 
     expect(result.errors).toContain("GET requests cannot include a body.");
   });
+
+  it("supports template drafts when strict validation is disabled", () => {
+    const result = buildProxyRequestPayload(
+      {
+        ...baseDraft,
+        url: "{{base_url}}/items",
+        bodyMode: "json",
+        bodyText: '{"limit": {{limit}}}',
+      },
+      {
+        requireHttpUrl: false,
+        validateJsonBody: false,
+      },
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      return;
+    }
+
+    expect(result.payload.url).toBe("{{base_url}}/items");
+    expect(result.payload.body).toBe('{"limit": {{limit}}}');
+  });
 });

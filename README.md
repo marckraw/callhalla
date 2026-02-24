@@ -44,10 +44,13 @@ npm run check:architecture
 
 - Supabase auth gate for the whole app (`/` + API routes)
 - Sign up / sign in flow at `/auth`
+- Multi-workspace context (create/switch/rename)
+- Per-workspace environments (create/switch)
+- Per-workspace variable definitions with per-environment values
 - Send HTTP requests with method, URL, headers
 - JSON/text request body modes
-- Server proxy (`/api/proxy`) for CORS-safe browser UX
-- Save requests per authenticated user with tags, and load/delete them later
+- Server proxy (`/api/proxy`) for CORS-safe browser UX with server-side `{{variable}}` interpolation
+- Save requests per authenticated user within the active workspace, with tags, and load/delete them later
 - Search saved requests by name, method, URL, and tags
 
 ## Supabase Schema
@@ -56,12 +59,12 @@ SQL migration is in:
 
 - `supabase/migrations/20260224113000_create_saved_requests.sql`
 - `supabase/migrations/20260224130000_add_saved_request_tags.sql`
+- `supabase/migrations/20260224181500_workspace_context_and_interpolation.sql`
 
-It creates `public.saved_requests` with RLS policies bound to `auth.uid()`.
+It creates workspace/environment/variable tables plus updates `public.saved_requests` workspace scoping under RLS.
 
 ## Next Scope
 
-- Environments and variable interpolation
 - Collections and folders
 - Auth presets (Bearer/API key/Basic)
 - Webhook capture inbox

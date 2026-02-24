@@ -1,0 +1,212 @@
+{
+  "version": "1.0.0",
+  "project": {
+    "typescript": {
+      "detected": true,
+      "configPath": "tsconfig.json",
+      "settings": {
+        "strict": true,
+        "target": "ES2017"
+      }
+    },
+    "eslint": {
+      "detected": true,
+      "configPath": "eslint.config.mjs",
+      "configFormat": "flat"
+    },
+    "packageManager": {
+      "name": "npm",
+      "lockfile": "package-lock.json"
+    }
+  },
+  "rules": {
+    "custom": [
+      {
+        "type": "regex",
+        "id": "no-app-imports-outside-app-layer",
+        "severity": "error",
+        "files": "src/**/*.{ts,tsx}",
+        "exclude": ["src/app/**"],
+        "pattern": "from\\s+[\"']@/app/",
+        "message": "Do not import @/app/* from outside src/app."
+      },
+      {
+        "type": "regex",
+        "id": "no-legacy-layer-imports",
+        "severity": "error",
+        "files": "src/**/*.{ts,tsx}",
+        "pattern": "from\\s+[\"']@/(?:components|hooks|lib|providers|types)/",
+        "message": "Legacy root imports are forbidden. Use app/shared/entities/features/widgets layers."
+      },
+      {
+        "type": "regex",
+        "id": "no-legacy-components-files",
+        "severity": "error",
+        "files": "src/components/**/*.{ts,tsx}",
+        "pattern": ".+",
+        "message": "src/components is retired."
+      },
+      {
+        "type": "regex",
+        "id": "no-legacy-hooks-files",
+        "severity": "error",
+        "files": "src/hooks/**/*.ts",
+        "pattern": ".+",
+        "message": "src/hooks is retired."
+      },
+      {
+        "type": "regex",
+        "id": "no-legacy-lib-files",
+        "severity": "error",
+        "files": "src/lib/**/*.ts",
+        "pattern": ".+",
+        "message": "src/lib is retired."
+      },
+      {
+        "type": "regex",
+        "id": "no-legacy-providers-files",
+        "severity": "error",
+        "files": "src/providers/**/*.{ts,tsx}",
+        "pattern": ".+",
+        "message": "src/providers is retired. Use src/app/providers."
+      },
+      {
+        "type": "regex",
+        "id": "no-legacy-types-files",
+        "severity": "error",
+        "files": "src/types/**/*.{ts,tsx}",
+        "pattern": ".+",
+        "message": "src/types is retired. Use src/entities or src/shared/types."
+      },
+      {
+        "type": "regex",
+        "id": "no-side-effects-in-presentational",
+        "severity": "error",
+        "files": "src/**/*.presentational.tsx",
+        "pattern": "\\b(useEffect|useLayoutEffect|useInsertionEffect|fetch)\\b",
+        "message": "Presentational components must be side-effect free."
+      },
+      {
+        "type": "regex",
+        "id": "no-stateful-hooks-in-presentational",
+        "severity": "error",
+        "files": "src/**/*.presentational.tsx",
+        "pattern": "\\b(useState|useReducer|useRef|useImperativeHandle)\\b",
+        "message": "Presentational components must not own local stateful hooks."
+      },
+      {
+        "type": "regex",
+        "id": "no-side-effects-in-pure-files",
+        "severity": "error",
+        "files": "src/**/*.pure.ts",
+        "pattern": "\\b(localStorage|sessionStorage|window\\.dispatchEvent|fetch|XMLHttpRequest|WebSocket|EventSource)\\b",
+        "message": "Pure files must stay side-effect free."
+      },
+      {
+        "type": "regex",
+        "id": "no-api-imports-in-pure-files",
+        "severity": "error",
+        "files": "src/**/*.pure.ts",
+        "pattern": "from\\s+[\"'][^\"']+\\.api[\"']",
+        "message": "Pure files must not import *.api.ts modules."
+      },
+      {
+        "type": "regex",
+        "id": "no-deep-features-imports-from-app-widgets",
+        "severity": "error",
+        "files": "src/{app,widgets}/**/*.{ts,tsx}",
+        "pattern": "from\\s+[\"']@/features/[^/\"']+/(?:api|model|lib|ui|hooks|service|types)/",
+        "message": "Cross-slice feature imports must use src/features/<slice>/index.ts public APIs."
+      },
+      {
+        "type": "regex",
+        "id": "no-deep-shared-imports-from-core-layers",
+        "severity": "error",
+        "files": "src/{app,widgets,features,entities,actions,db}/**/*.{ts,tsx}",
+        "pattern": "from\\s+[\"']@/shared/(?:api|hooks|lib|service|ui|types)/",
+        "message": "Core layers must import from src/shared/index.ts public API."
+      },
+      {
+        "type": "component-location",
+        "id": "presentational-in-features-ui",
+        "severity": "error",
+        "files": "src/features/**/*.presentational.tsx",
+        "componentType": "presentational",
+        "requiredLocation": "src/features/**/ui/**",
+        "mustBeIn": true,
+        "message": "Feature presentational components should live under a ui/ folder."
+      },
+      {
+        "type": "component-location",
+        "id": "presentational-in-widgets-ui",
+        "severity": "error",
+        "files": "src/widgets/**/*.presentational.tsx",
+        "componentType": "presentational",
+        "requiredLocation": "src/widgets/**/ui/**",
+        "mustBeIn": true,
+        "message": "Widget presentational components should live under a ui/ folder."
+      },
+      {
+        "type": "component-location",
+        "id": "presentational-in-shared-ui",
+        "severity": "error",
+        "files": "src/shared/**/*.presentational.tsx",
+        "componentType": "presentational",
+        "requiredLocation": "src/shared/ui/**",
+        "mustBeIn": true,
+        "message": "Shared presentational components should live under src/shared/ui."
+      },
+      {
+        "type": "file-pairing",
+        "id": "pure-files-require-sibling-tests",
+        "severity": "error",
+        "files": "src/**/*.pure.ts",
+        "pair": {
+          "from": "^(.*)\\.pure\\.ts$",
+          "to": "$1.pure.test.ts"
+        },
+        "mustExist": true,
+        "requireTransformMatch": true,
+        "message": "Every *.pure.ts file must have a sibling *.pure.test.ts file."
+      },
+      {
+        "type": "file-pairing",
+        "id": "pure-tests-require-sibling-source",
+        "severity": "error",
+        "files": "src/**/*.pure.test.ts",
+        "pair": {
+          "from": "^(.*)\\.pure\\.test\\.ts$",
+          "to": "$1.pure.ts"
+        },
+        "mustExist": true,
+        "requireTransformMatch": true,
+        "message": "Every *.pure.test.ts file must have a sibling *.pure.ts file."
+      },
+      {
+        "type": "package-fields",
+        "id": "callhalla-core-scripts-present",
+        "severity": "error",
+        "requiredFields": [
+          "scripts.dev",
+          "scripts.lint",
+          "scripts.test:run",
+          "scripts.build"
+        ],
+        "fieldPatterns": {
+          "scripts.dev": "next\\s+dev",
+          "scripts.lint": "eslint",
+          "scripts.test:run": "vitest\\s+run",
+          "scripts.build": "next\\s+build"
+        },
+        "message": "Core Callhalla npm scripts must remain configured."
+      }
+    ]
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "build", ".next"],
+  "integrations": {
+    "respectEslintIgnore": true,
+    "respectPrettierIgnore": false,
+    "useTypescriptPaths": true
+  }
+}

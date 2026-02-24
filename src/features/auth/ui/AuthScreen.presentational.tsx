@@ -1,4 +1,4 @@
-import { Button, Panel, TextInput } from "@/shared";
+import { Button, Card, CardContent, Input } from "@/shared";
 
 type AuthMode = "signin" | "signup";
 
@@ -28,29 +28,38 @@ export const AuthScreen = ({
   onSubmit,
 }: AuthScreenProps) => {
   return (
-    <Panel className="mx-auto w-full max-w-md space-y-5">
+    <Card className="mx-auto w-full max-w-md border-border bg-card/90">
+      <CardContent className="space-y-5 p-5">
       <div className="space-y-2">
         <h1 className="text-3xl font-semibold tracking-tight">Callhalla Access</h1>
-        <p className="text-sm text-[var(--text-muted)]">
+        <p className="text-sm text-muted-foreground">
           Sign in to use the request console. Registration is enabled for now and can be disabled later in Supabase.
         </p>
       </div>
 
       <div className="flex gap-2">
-        <Button onClick={() => onModeChange("signin")} tone={mode === "signin" ? "primary" : "default"} type="button">
+        <Button
+          onClick={() => onModeChange("signin")}
+          type="button"
+          variant={mode === "signin" ? "default" : "secondary"}
+        >
           Sign In
         </Button>
-        <Button onClick={() => onModeChange("signup")} tone={mode === "signup" ? "primary" : "default"} type="button">
+        <Button
+          onClick={() => onModeChange("signup")}
+          type="button"
+          variant={mode === "signup" ? "default" : "secondary"}
+        >
           Sign Up
         </Button>
       </div>
 
       <div className="space-y-3">
         <div className="space-y-1">
-          <label className="text-xs uppercase tracking-wide text-[var(--text-muted)]" htmlFor="email">
+          <label className="text-xs uppercase tracking-wide text-muted-foreground" htmlFor="email">
             Email
           </label>
-          <TextInput
+          <Input
             autoComplete="email"
             id="email"
             placeholder="you@example.com"
@@ -61,10 +70,10 @@ export const AuthScreen = ({
         </div>
 
         <div className="space-y-1">
-          <label className="text-xs uppercase tracking-wide text-[var(--text-muted)]" htmlFor="password">
+          <label className="text-xs uppercase tracking-wide text-muted-foreground" htmlFor="password">
             Password
           </label>
-          <TextInput
+          <Input
             autoComplete={mode === "signin" ? "current-password" : "new-password"}
             id="password"
             minLength={8}
@@ -77,24 +86,25 @@ export const AuthScreen = ({
       </div>
 
       {errorMessage ? (
-        <div className="rounded-lg border border-[var(--danger)]/40 bg-[var(--danger)]/10 px-3 py-2 text-sm text-[var(--danger)]">
+        <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {errorMessage}
         </div>
       ) : null}
 
       {infoMessage ? (
-        <div className="rounded-lg border border-[var(--ok)]/40 bg-[var(--ok)]/10 px-3 py-2 text-sm text-[var(--ok)]">
+        <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-500">
           {infoMessage}
         </div>
       ) : null}
 
-      <Button className="w-full" disabled={isSubmitting} onClick={onSubmit} tone="primary" type="button">
+      <Button className="w-full" disabled={isSubmitting} onClick={onSubmit} type="button">
         {isSubmitting
           ? "Working..."
           : mode === "signin"
             ? "Sign In"
             : "Create Account"}
       </Button>
-    </Panel>
+      </CardContent>
+    </Card>
   );
 };

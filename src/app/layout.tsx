@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Space_Grotesk } from "next/font/google";
+import { Toaster } from "@/shared";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -20,6 +21,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={spaceGrotesk.className} suppressHydrationWarning>
         {children}
+        <Toaster />
       </body>
     </html>
   );

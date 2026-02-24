@@ -30,6 +30,12 @@ Updated: 2026-02-24
 4. `*.pure.ts` for pure logic with required sibling `*.pure.test.ts`.
 5. `*.types.ts` for local slice types.
 
+## Shared UI
+
+- shadcn/ui primitives are hosted in `src/shared/ui`.
+- All upper layers consume shared UI through `@/shared` public exports.
+- `components.json` aliases point shadcn generation to `src/shared/ui` and `src/shared/lib`.
+
 ## Vertical Slices
 
 ### API workbench

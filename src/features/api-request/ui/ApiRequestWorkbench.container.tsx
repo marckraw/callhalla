@@ -9,6 +9,7 @@ import {
   type ProxyResponse,
   type RequestDraft,
   type SavedRequest,
+  toast,
 } from "@/shared";
 import {
   deleteSavedRequest,
@@ -178,8 +179,10 @@ export const ApiRequestWorkbench = () => {
 
       setSavedRequests((current) => [saved, ...current.filter((item) => item.id !== saved.id)]);
       setEditingSavedRequestId(saved.id);
+      toast.success(editingSavedRequestId ? "Saved request updated." : "Saved request created.");
     } catch (error) {
       setValidationErrors([error instanceof Error ? error.message : "Unable to save request."]);
+      toast.error("Unable to save request.");
     } finally {
       setIsSaving(false);
     }
@@ -200,6 +203,7 @@ export const ApiRequestWorkbench = () => {
     try {
       await deleteSavedRequest(item.id);
       setSavedRequests((current) => current.filter((existing) => existing.id !== item.id));
+      toast.success("Saved request deleted.");
       if (editingSavedRequestId === item.id) {
         setEditingSavedRequestId(null);
         setSaveName("");
@@ -207,6 +211,7 @@ export const ApiRequestWorkbench = () => {
       }
     } catch (error) {
       setSavedRequestsError(error instanceof Error ? error.message : "Unable to delete saved request.");
+      toast.error("Unable to delete saved request.");
     }
   };
 

@@ -1,5 +1,5 @@
 import type { SavedRequest } from "@/shared";
-import { Button, Panel, TextInput } from "@/shared";
+import { Badge, Button, Card, CardContent, Input } from "@/shared";
 
 const formatUpdatedAt = (value: string) => {
   const parsed = new Date(value);
@@ -36,72 +36,71 @@ export const SavedRequestsPanel = ({
   onDelete,
 }: SavedRequestsPanelProps) => {
   return (
-    <Panel className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
-        <div>
-          <h2 className="text-sm font-semibold">Saved Requests</h2>
-          <p className="text-xs text-[var(--text-muted)]">
-            Showing {filteredCount} of {totalCount}
+    <Card className="border-border/80 bg-card/90">
+      <CardContent className="space-y-3 p-4">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <h2 className="text-sm font-semibold">Saved Requests</h2>
+            <p className="text-xs text-muted-foreground">
+              Showing {filteredCount} of {totalCount}
+            </p>
+          </div>
+          <Button disabled={isLoading} onClick={onRefresh} size="sm" type="button" variant="secondary">
+            Refresh
+          </Button>
+        </div>
+
+        <Input
+          placeholder="Search by name, method, URL, or tag"
+          value={searchQuery}
+          onChange={(event) => onSearchQueryChange(event.target.value)}
+        />
+
+        {errorMessage ? (
+          <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {errorMessage}
+          </div>
+        ) : null}
+
+        {items.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            {totalCount === 0 ? "No saved requests yet." : "No requests match your search."}
           </p>
-        </div>
-        <Button disabled={isLoading} onClick={onRefresh} type="button">
-          Refresh
-        </Button>
-      </div>
-
-      <TextInput
-        placeholder="Search by name, method, URL, or tag"
-        value={searchQuery}
-        onChange={(event) => onSearchQueryChange(event.target.value)}
-      />
-
-      {errorMessage ? (
-        <div className="rounded-lg border border-[var(--danger)]/40 bg-[var(--danger)]/10 px-3 py-2 text-sm text-[var(--danger)]">
-          {errorMessage}
-        </div>
-      ) : null}
-
-      {items.length === 0 ? (
-        <p className="text-sm text-[var(--text-muted)]">
-          {totalCount === 0 ? "No saved requests yet." : "No requests match your search."}
-        </p>
-      ) : (
-        <div className="space-y-2">
-          {items.map((item) => (
-            <div className="space-y-2 rounded-xl border border-[var(--border)] bg-[var(--background)] p-3" key={item.id}>
-              <div className="flex items-center justify-between gap-2">
-                <div>
-                  <p className="text-sm font-semibold">{item.name}</p>
-                  <p className="text-xs text-[var(--text-muted)]">
-                    {item.draft.method} {item.draft.url}
-                  </p>
+        ) : (
+          <div className="space-y-2">
+            {items.map((item) => (
+              <div className="space-y-2 rounded-xl border border-border bg-background p-3" key={item.id}>
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-semibold">{item.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {item.draft.method} {item.draft.url}
+                    </p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{formatUpdatedAt(item.updatedAt)}</p>
                 </div>
-                <p className="text-xs text-[var(--text-muted)]">{formatUpdatedAt(item.updatedAt)}</p>
-              </div>
-              {item.tags.length > 0 ? (
-                <div className="flex flex-wrap gap-1">
-                  {item.tags.map((tag) => (
-                    <span
-                      className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 py-0.5 text-[11px] text-[var(--text-muted)]"
-                      key={`${item.id}-${tag}`}
-                    >
-                      #{tag}
-                    </span>
-                  ))}
+                {item.tags.length > 0 ? (
+                  <div className="flex flex-wrap gap-1">
+                    {item.tags.map((tag) => (
+                      <Badge className="font-normal" key={`${item.id}-${tag}`} variant="secondary">
+                        #{tag}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : null}
+                <div className="flex gap-2">
+                  <Button onClick={() => onLoad(item)} size="sm" type="button">
+                    Load
+                  </Button>
+                  <Button onClick={() => onDelete(item)} size="sm" type="button" variant="destructive">
+                    Delete
+                  </Button>
                 </div>
-              ) : null}
-              <div className="flex gap-2">
-                <Button onClick={() => onLoad(item)} tone="primary" type="button">
-                  Load
-                </Button>
-                <Button onClick={() => onDelete(item)} tone="danger" type="button">
-                  Delete
-                </Button>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </Panel>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };

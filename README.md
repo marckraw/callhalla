@@ -6,6 +6,7 @@ API testing workbench inspired by Postman/Insomnia.
 
 - Next.js 16 + React 19 + TypeScript
 - Tailwind CSS v4
+- shadcn/ui primitives (`components.json`) in `src/shared/ui`
 - Supabase Auth + Postgres
 - Vitest
 - ESLint flat config

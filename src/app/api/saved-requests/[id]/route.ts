@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import type { BodyMode, HeaderRow, HttpMethod, SavedRequest } from "@/shared";
-import { getAuthenticatedServerClient } from "@/shared/server";
+import { getActiveWorkspaceId, getAuthenticatedServerClient } from "@/shared/server";
 
 const paramsSchema = z.object({
   id: z.string().uuid(),
@@ -16,7 +16,7 @@ const headerSchema = z.object({
 
 const draftSchema = z.object({
   method: z.enum(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]),
-  url: z.string().url(),
+  url: z.string().trim().min(1),
   headers: z.array(headerSchema),
   bodyMode: z.enum(["none", "json", "text"]),
   bodyText: z.string(),
@@ -31,6 +31,7 @@ const updateSchema = z.object({
 type SavedRequestRow = {
   id: string;
   user_id: string;
+  workspace_id: string;
   name: string;
   tags: string[];
   method: HttpMethod;
@@ -79,7 +80,8 @@ const toSavedRequest = (row: SavedRequestRow): SavedRequest => ({
   },
 });
 
-const projection = "id,user_id,name,tags,method,url,headers,body_mode,body_text,created_at,updated_at";
+const projection =
+  "id,user_id,workspace_id,name,tags,method,url,headers,body_mode,body_text,created_at,updated_at";
 
 export async function DELETE(
   _request: Request,
@@ -107,6 +109,8 @@ export async function DELETE(
     );
   }
 
+  const activeWorkspaceId = await getActiveWorkspaceId(supabase, user.id);
+
   const parsedParams = paramsSchema.safeParse(await context.params);
   if (!parsedParams.success) {
     return NextResponse.json(
@@ -121,6 +125,7 @@ export async function DELETE(
     .from("saved_requests")
     .delete()
     .eq("id", parsedParams.data.id)
+    .eq("workspace_id", activeWorkspaceId)
     .eq("user_id", user.id);
 
   if (error) {
@@ -161,6 +166,8 @@ export async function PATCH(
     );
   }
 
+  const activeWorkspaceId = await getActiveWorkspaceId(supabase, user.id);
+
   const parsedParams = paramsSchema.safeParse(await context.params);
   if (!parsedParams.success) {
     return NextResponse.json(
@@ -187,6 +194,7 @@ export async function PATCH(
         body_text: payload.draft.bodyText,
       })
       .eq("id", parsedParams.data.id)
+      .eq("workspace_id", activeWorkspaceId)
       .eq("user_id", user.id)
       .select(projection)
       .single();

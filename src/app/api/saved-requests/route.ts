@@ -6,7 +6,7 @@ import {
   type HttpMethod,
   type SavedRequest,
 } from "@/shared";
-import { getAuthenticatedServerClient } from "@/shared/server";
+import { getActiveWorkspaceId, getAuthenticatedServerClient } from "@/shared/server";
 
 const headerSchema = z.object({
   id: z.string().min(1),
@@ -17,7 +17,7 @@ const headerSchema = z.object({
 
 const draftSchema = z.object({
   method: z.enum(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]),
-  url: z.string().url(),
+  url: z.string().trim().min(1),
   headers: z.array(headerSchema),
   bodyMode: z.enum(["none", "json", "text"]),
   bodyText: z.string(),
@@ -32,6 +32,7 @@ const createSchema = z.object({
 type SavedRequestRow = {
   id: string;
   user_id: string;
+  workspace_id: string;
   name: string;
   tags: string[];
   method: HttpMethod;
@@ -80,7 +81,8 @@ const toSavedRequest = (row: SavedRequestRow): SavedRequest => ({
   },
 });
 
-const projection = "id,user_id,name,tags,method,url,headers,body_mode,body_text,created_at,updated_at";
+const projection =
+  "id,user_id,workspace_id,name,tags,method,url,headers,body_mode,body_text,created_at,updated_at";
 
 export async function GET() {
   const { supabase, user } = await getAuthenticatedServerClient();
@@ -103,9 +105,12 @@ export async function GET() {
     );
   }
 
+  const activeWorkspaceId = await getActiveWorkspaceId(supabase, user.id);
+
   const { data, error } = await supabase
     .from("saved_requests")
     .select(projection)
+    .eq("workspace_id", activeWorkspaceId)
     .order("updated_at", { ascending: false });
 
   if (error) {
@@ -143,6 +148,7 @@ export async function POST(request: Request) {
   }
 
   try {
+    const activeWorkspaceId = await getActiveWorkspaceId(supabase, user.id);
     const payload = createSchema.parse(await request.json());
     const normalizedTags = [...new Set(payload.tags.map((tag) => tag.trim().toLowerCase()))];
 
@@ -150,6 +156,7 @@ export async function POST(request: Request) {
       .from("saved_requests")
       .insert({
         user_id: user.id,
+        workspace_id: activeWorkspaceId,
         name: payload.name,
         tags: normalizedTags,
         method: payload.draft.method,

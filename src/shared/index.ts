@@ -12,6 +12,13 @@ export type {
   RequestPreparationResult,
   SavedRequest,
 } from "./types/request-executor.types";
+export type {
+  Environment,
+  Workspace,
+  WorkspaceContext,
+  WorkspaceVariable,
+  WorkspaceVariableValueInput,
+} from "./types/workspace.types";
 export { HTTP_METHODS } from "./types/request-executor.types";
 export {
   Badge,

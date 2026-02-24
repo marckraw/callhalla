@@ -11,6 +11,7 @@ type RequestComposerProps = {
   validationErrors: string[];
   saveName: string;
   saveTagsText: string;
+  isEditingSavedRequest: boolean;
   isSubmitting: boolean;
   isSaving: boolean;
   onMethodChange: (method: HttpMethod) => void;
@@ -36,6 +37,7 @@ export const RequestComposer = ({
   validationErrors,
   saveName,
   saveTagsText,
+  isEditingSavedRequest,
   isSubmitting,
   isSaving,
   onMethodChange,
@@ -146,7 +148,9 @@ export const RequestComposer = ({
       </div>
 
       <div className="space-y-2 rounded-xl border border-[var(--border)] bg-[var(--background)] p-3">
-        <h2 className="text-sm font-semibold">Save Request</h2>
+        <h2 className="text-sm font-semibold">
+          {isEditingSavedRequest ? "Update Loaded Request" : "Save Request"}
+        </h2>
         <div className="space-y-2">
           <TextInput
             placeholder="Request name (for example: Get users list)"
@@ -160,7 +164,7 @@ export const RequestComposer = ({
           />
           <div className="flex justify-end">
             <Button disabled={isSaving} onClick={onSave} type="button">
-              {isSaving ? "Saving..." : "Save"}
+              {isSaving ? "Saving..." : isEditingSavedRequest ? "Update" : "Save"}
             </Button>
           </div>
         </div>

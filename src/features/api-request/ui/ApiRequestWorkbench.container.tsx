@@ -10,7 +10,12 @@ import {
   type RequestDraft,
   type SavedRequest,
 } from "@/shared";
-import { deleteSavedRequest, listSavedRequests, saveRequestDraft } from "../api/saved-requests.api";
+import {
+  deleteSavedRequest,
+  listSavedRequests,
+  saveRequestDraft,
+  updateSavedRequestDraft,
+} from "../api/saved-requests.api";
 import { executeProxyRequest } from "../api/request-executor.api";
 import { buildProxyRequestPayload } from "../model/request-payload.pure";
 import { formatResponseBody } from "../model/response-body.pure";
@@ -38,6 +43,7 @@ export const ApiRequestWorkbench = () => {
   const [draft, setDraft] = useState<RequestDraft>(initialDraft);
   const [saveName, setSaveName] = useState("");
   const [saveTagsText, setSaveTagsText] = useState("");
+  const [editingSavedRequestId, setEditingSavedRequestId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [runtimeError, setRuntimeError] = useState<string | null>(null);
@@ -157,15 +163,21 @@ export const ApiRequestWorkbench = () => {
     try {
       const tags = parseTagsInput(saveTagsText);
 
-      const saved = await saveRequestDraft({
-        name: saveName.trim(),
-        tags,
-        draft,
-      });
+      const saved =
+        editingSavedRequestId !== null
+          ? await updateSavedRequestDraft(editingSavedRequestId, {
+              name: saveName.trim(),
+              tags,
+              draft,
+            })
+          : await saveRequestDraft({
+              name: saveName.trim(),
+              tags,
+              draft,
+            });
 
       setSavedRequests((current) => [saved, ...current.filter((item) => item.id !== saved.id)]);
-      setSaveName("");
-      setSaveTagsText("");
+      setEditingSavedRequestId(saved.id);
     } catch (error) {
       setValidationErrors([error instanceof Error ? error.message : "Unable to save request."]);
     } finally {
@@ -177,6 +189,7 @@ export const ApiRequestWorkbench = () => {
     setDraft(item.draft);
     setSaveName(item.name);
     setSaveTagsText(item.tags.join(", "));
+    setEditingSavedRequestId(item.id);
     setValidationErrors([]);
     setRuntimeError(null);
   };
@@ -187,6 +200,11 @@ export const ApiRequestWorkbench = () => {
     try {
       await deleteSavedRequest(item.id);
       setSavedRequests((current) => current.filter((existing) => existing.id !== item.id));
+      if (editingSavedRequestId === item.id) {
+        setEditingSavedRequestId(null);
+        setSaveName("");
+        setSaveTagsText("");
+      }
     } catch (error) {
       setSavedRequestsError(error instanceof Error ? error.message : "Unable to delete saved request.");
     }
@@ -200,6 +218,7 @@ export const ApiRequestWorkbench = () => {
         headers={draft.headers}
         isSaving={isSaving}
         isSubmitting={isSubmitting}
+        isEditingSavedRequest={editingSavedRequestId !== null}
         method={draft.method}
         methods={HTTP_METHODS}
         saveName={saveName}

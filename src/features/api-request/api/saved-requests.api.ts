@@ -46,6 +46,26 @@ export const saveRequestDraft = async (input: SaveRequestInput): Promise<SavedRe
   return payload.item;
 };
 
+export const updateSavedRequestDraft = async (
+  id: string,
+  input: SaveRequestInput,
+): Promise<SavedRequest> => {
+  const response = await fetch(`/api/saved-requests/${id}`, {
+    method: "PATCH",
+    headers: {
+      "content-type": "application/json",
+    },
+    body: JSON.stringify(input),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response));
+  }
+
+  const payload = (await response.json()) as { item: SavedRequest };
+  return payload.item;
+};
+
 export const deleteSavedRequest = async (id: string): Promise<void> => {
   const response = await fetch(`/api/saved-requests/${id}`, {
     method: "DELETE",

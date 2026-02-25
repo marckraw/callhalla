@@ -40,7 +40,13 @@ const initialDraft: RequestDraft = {
   bodyText: "",
 };
 
-export const ApiRequestWorkbench = () => {
+type ApiRequestWorkbenchProps = {
+  variableSuggestions?: string[];
+};
+
+export const ApiRequestWorkbench = ({
+  variableSuggestions = [],
+}: ApiRequestWorkbenchProps) => {
   const [draft, setDraft] = useState<RequestDraft>(initialDraft);
   const [saveName, setSaveName] = useState("");
   const [saveTagsText, setSaveTagsText] = useState("");
@@ -222,7 +228,7 @@ export const ApiRequestWorkbench = () => {
   };
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[1fr_1fr_0.8fr]">
+    <div className="grid w-full items-start gap-4 xl:grid-cols-[minmax(460px,1.1fr)_minmax(420px,1fr)_minmax(340px,0.9fr)]">
       <RequestComposer
         bodyMode={draft.bodyMode}
         bodyText={draft.bodyText}
@@ -236,6 +242,7 @@ export const ApiRequestWorkbench = () => {
         saveTagsText={saveTagsText}
         url={draft.url}
         validationErrors={validationErrors}
+        variableSuggestions={variableSuggestions}
         onAddHeader={handleAddHeader}
         onBodyModeChange={handleBodyModeChange}
         onBodyTextChange={(bodyText) => setDraft((current) => ({ ...current, bodyText }))}

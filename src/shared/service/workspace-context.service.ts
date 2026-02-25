@@ -305,7 +305,14 @@ export const ensureWorkspaceContext = async (
   }
 
   const activeEnvironmentId = pickActiveEnvironmentId(environments, settings);
-  await upsertUserSettings(supabase, userId, activeWorkspaceId, activeEnvironmentId);
+  const shouldPersistSettings =
+    !settings
+    || settings.active_workspace_id !== activeWorkspaceId
+    || settings.active_environment_id !== activeEnvironmentId;
+
+  if (shouldPersistSettings) {
+    await upsertUserSettings(supabase, userId, activeWorkspaceId, activeEnvironmentId);
+  }
 
   const variables = await listWorkspaceVariablesForEnvironment(
     supabase,
@@ -326,6 +333,11 @@ export const getActiveWorkspaceId = async (
   supabase: SupabaseClient,
   userId: string,
 ): Promise<string> => {
+  const settings = await getUserSettings(supabase, userId);
+  if (settings?.active_workspace_id) {
+    return settings.active_workspace_id;
+  }
+
   const context = await ensureWorkspaceContext(supabase, userId);
   return context.activeWorkspaceId;
 };
@@ -334,9 +346,26 @@ export const getActiveEnvironmentVariablesMap = async (
   supabase: SupabaseClient,
   userId: string,
 ): Promise<Record<string, string>> => {
+  const settings = await getUserSettings(supabase, userId);
+  const activeWorkspaceId = settings?.active_workspace_id;
+  const activeEnvironmentId = settings?.active_environment_id;
+
+  if (activeWorkspaceId && activeEnvironmentId) {
+    try {
+      const variables = await listWorkspaceVariablesForEnvironment(
+        supabase,
+        activeWorkspaceId,
+        activeEnvironmentId,
+      );
+      const enabledVariables = variables.filter((item) => item.enabled);
+      return Object.fromEntries(enabledVariables.map((item) => [item.key, item.value]));
+    } catch {
+      // Fall back to full context recovery for stale or missing settings references.
+    }
+  }
+
   const context = await ensureWorkspaceContext(supabase, userId);
   const variables = context.variables.filter((item) => item.enabled);
-
   return Object.fromEntries(variables.map((item) => [item.key, item.value]));
 };
 

@@ -1,6 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  BriefcaseBusiness,
+  Loader2,
+  PanelLeftClose,
+  PanelLeftOpen,
+  RefreshCw,
+  Settings2,
+} from "lucide-react";
 import type { WorkspaceContext, WorkspaceVariableValueInput } from "@/shared";
 import {
   Badge,
@@ -48,7 +56,10 @@ type VariableValueDraft = {
 
 type WorkspaceControlsProps = {
   onActiveWorkspaceChange?: (workspaceId: string) => void;
+  onVariableSuggestionsChange?: (keys: string[]) => void;
 };
+
+const SIDEBAR_COLLAPSED_STORAGE_KEY = "callhalla.workspace-sidebar-collapsed";
 
 const toMetaDraftRecord = (context: WorkspaceContext): Record<string, VariableMetaDraft> =>
   Object.fromEntries(
@@ -73,12 +84,30 @@ const toValueDraftRecord = (context: WorkspaceContext): Record<string, VariableV
     ]),
   );
 
-export const WorkspaceControls = ({ onActiveWorkspaceChange }: WorkspaceControlsProps) => {
+const getWorkspaceMonogram = (name: string): string => {
+  const initials = name
+    .trim()
+    .split(/\s+/)
+    .map((part) => part[0] ?? "")
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+  return initials.length > 0 ? initials : "WS";
+};
+
+export const WorkspaceControls = ({
+  onActiveWorkspaceChange,
+  onVariableSuggestionsChange,
+}: WorkspaceControlsProps) => {
   const [context, setContext] = useState<WorkspaceContext | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
   const [isManageOpen, setIsManageOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [pendingWorkspaceId, setPendingWorkspaceId] = useState<string | null>(null);
+  const [pendingEnvironmentId, setPendingEnvironmentId] = useState<string | null>(null);
 
   const [newWorkspaceName, setNewWorkspaceName] = useState("");
   const [renameWorkspaceName, setRenameWorkspaceName] = useState("");
@@ -106,6 +135,24 @@ export const WorkspaceControls = ({ onActiveWorkspaceChange }: WorkspaceControls
     return context.environments.find((environment) => environment.id === context.activeEnvironmentId) ?? null;
   }, [context]);
 
+  const displayedActiveWorkspaceId = pendingWorkspaceId ?? context?.activeWorkspaceId ?? "";
+  const displayedActiveEnvironmentId = pendingEnvironmentId ?? context?.activeEnvironmentId ?? "";
+  const displayedActiveWorkspace = useMemo(() => {
+    if (!context) {
+      return activeWorkspace;
+    }
+
+    return context.workspaces.find((workspace) => workspace.id === displayedActiveWorkspaceId) ?? activeWorkspace;
+  }, [activeWorkspace, context, displayedActiveWorkspaceId]);
+  const displayedActiveEnvironment = useMemo(() => {
+    if (!context) {
+      return activeEnvironment;
+    }
+
+    return context.environments.find((environment) => environment.id === displayedActiveEnvironmentId)
+      ?? activeEnvironment;
+  }, [activeEnvironment, context, displayedActiveEnvironmentId]);
+
   const applyContext = useCallback((nextContext: WorkspaceContext) => {
     const previousWorkspaceId = context?.activeWorkspaceId;
 
@@ -116,11 +163,16 @@ export const WorkspaceControls = ({ onActiveWorkspaceChange }: WorkspaceControls
     );
     setVariableMetaDrafts(toMetaDraftRecord(nextContext));
     setVariableValueDrafts(toValueDraftRecord(nextContext));
+    onVariableSuggestionsChange?.(
+      [...new Set(nextContext.variables.filter((item) => item.enabled).map((item) => item.key))],
+    );
+    setPendingWorkspaceId(null);
+    setPendingEnvironmentId(null);
 
     if (previousWorkspaceId !== nextContext.activeWorkspaceId) {
       onActiveWorkspaceChange?.(nextContext.activeWorkspaceId);
     }
-  }, [context?.activeWorkspaceId, onActiveWorkspaceChange]);
+  }, [context?.activeWorkspaceId, onActiveWorkspaceChange, onVariableSuggestionsChange]);
 
   const refreshContext = useCallback(async () => {
     setError(null);
@@ -139,6 +191,17 @@ export const WorkspaceControls = ({ onActiveWorkspaceChange }: WorkspaceControls
   useEffect(() => {
     void refreshContext();
   }, [refreshContext]);
+
+  useEffect(() => {
+    const storedValue = window.localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY);
+    if (storedValue === "true") {
+      setIsCollapsed(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, String(isCollapsed));
+  }, [isCollapsed]);
 
   const mutateContext = async (operation: () => Promise<WorkspaceContext>, successMessage?: string) => {
     setIsMutating(true);
@@ -160,73 +223,268 @@ export const WorkspaceControls = ({ onActiveWorkspaceChange }: WorkspaceControls
     }
   };
 
+  const isBusy = isLoading || isMutating;
+
+  const handleWorkspaceSelect = async (workspaceId: string) => {
+    if (workspaceId === displayedActiveWorkspaceId) {
+      return;
+    }
+
+    setPendingWorkspaceId(workspaceId);
+    setPendingEnvironmentId(null);
+
+    try {
+      await mutateContext(
+        () => activateWorkspace(workspaceId),
+        "Active workspace updated.",
+      );
+    } finally {
+      setPendingWorkspaceId(null);
+    }
+  };
+
+  const handleEnvironmentSelect = async (environmentId: string) => {
+    if (!context || environmentId === displayedActiveEnvironmentId) {
+      return;
+    }
+
+    setPendingEnvironmentId(environmentId);
+
+    try {
+      await mutateContext(
+        () => activateEnvironment(context.activeWorkspaceId, environmentId),
+        "Active environment updated.",
+      );
+    } finally {
+      setPendingEnvironmentId(null);
+    }
+  };
+
   return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap items-center gap-2">
-        <Select
-          disabled={!context || isLoading || isMutating}
-          value={context?.activeWorkspaceId}
-          onValueChange={(workspaceId) => {
-            void mutateContext(
-              () => activateWorkspace(workspaceId),
-              "Active workspace updated.",
-            );
-          }}
-        >
-          <SelectTrigger className="w-[220px]">
-            <SelectValue placeholder="Select workspace" />
-          </SelectTrigger>
-          <SelectContent>
-            {(context?.workspaces ?? []).map((workspace) => (
-              <SelectItem key={workspace.id} value={workspace.id}>
-                {workspace.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+    <div className="space-y-3 lg:h-full lg:sticky lg:top-4 lg:self-start">
+      <div className="space-y-3 rounded-2xl border border-border/70 bg-card/80 p-3 shadow-sm backdrop-blur lg:hidden">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Active Workspace
+            </p>
+            <p className="truncate text-sm font-semibold text-foreground">
+              {displayedActiveWorkspace?.name ?? "Loading..."}
+            </p>
+            <p className="truncate text-xs text-muted-foreground">
+              Environment: {displayedActiveEnvironment?.name ?? "n/a"}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              disabled={isBusy}
+              onClick={() => {
+                void refreshContext();
+              }}
+              size="icon"
+              type="button"
+              variant="outline"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+            <Button
+              disabled={isBusy}
+              onClick={() => setIsManageOpen(true)}
+              size="sm"
+              type="button"
+              variant="secondary"
+            >
+              Manage
+            </Button>
+          </div>
+        </div>
 
-        <Select
-          disabled={!context || isLoading || isMutating}
-          value={context?.activeEnvironmentId}
-          onValueChange={(environmentId) => {
-            if (!context) {
-              return;
-            }
+        <div className="grid gap-2 sm:grid-cols-2">
+          <Select
+            disabled={!context || isBusy}
+            value={displayedActiveWorkspaceId}
+            onValueChange={(workspaceId) => {
+              void handleWorkspaceSelect(workspaceId);
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select workspace" />
+            </SelectTrigger>
+            <SelectContent>
+              {(context?.workspaces ?? []).map((workspace) => (
+                <SelectItem key={workspace.id} value={workspace.id}>
+                  {workspace.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-            void mutateContext(
-              () => activateEnvironment(context.activeWorkspaceId, environmentId),
-              "Active environment updated.",
-            );
-          }}
-        >
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Select environment" />
-          </SelectTrigger>
-          <SelectContent>
-            {(context?.environments ?? []).map((environment) => (
-              <SelectItem key={environment.id} value={environment.id}>
-                {environment.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Button disabled={isLoading || isMutating} type="button" variant="secondary" onClick={() => setIsManageOpen(true)}>
-          Manage
-        </Button>
-
-        <Button disabled={isLoading || isMutating} type="button" variant="secondary" onClick={() => {
-          void refreshContext();
-        }}>
-          Refresh
-        </Button>
+          <Select
+            disabled={!context || isBusy}
+            value={displayedActiveEnvironmentId}
+            onValueChange={(environmentId) => {
+              void handleEnvironmentSelect(environmentId);
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select environment" />
+            </SelectTrigger>
+            <SelectContent>
+              {(context?.environments ?? []).map((environment) => (
+                <SelectItem key={environment.id} value={environment.id}>
+                  {environment.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      {activeWorkspace ? (
-        <p className="text-xs text-muted-foreground">
-          Workspace: <span className="text-foreground">{activeWorkspace.name}</span> | Environment:{" "}
-          <span className="text-foreground">{activeEnvironment?.name ?? "n/a"}</span>
-        </p>
+      <aside className="hidden min-h-[560px] overflow-hidden rounded-2xl border border-border/70 bg-card/80 shadow-sm backdrop-blur lg:flex lg:min-h-[calc(100vh-1.5rem)]">
+        <div className="flex w-16 flex-col items-center gap-2 border-r border-border/70 bg-background/45 py-3">
+          <Button className="h-10 w-10 rounded-xl" size="icon" type="button" variant="secondary">
+            <BriefcaseBusiness className="h-4 w-4" />
+          </Button>
+
+          <div className="flex w-full flex-1 flex-col items-center gap-2 overflow-y-auto px-2">
+            {(context?.workspaces ?? []).map((workspace) => (
+              <button
+                className={`h-10 w-10 rounded-xl border text-[11px] font-bold transition-colors ${
+                  workspace.id === displayedActiveWorkspaceId
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-secondary/55 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                }`}
+                disabled={isBusy}
+                key={workspace.id}
+                onClick={() => {
+                  void handleWorkspaceSelect(workspace.id);
+                }}
+                type="button"
+              >
+                {pendingWorkspaceId === workspace.id ? (
+                  <Loader2 className="mx-auto h-3 w-3 animate-spin" />
+                ) : (
+                  getWorkspaceMonogram(workspace.name)
+                )}
+              </button>
+            ))}
+          </div>
+
+          <Button
+            disabled={isBusy}
+            onClick={() => setIsManageOpen(true)}
+            size="icon"
+            type="button"
+            variant="ghost"
+          >
+            <Settings2 className="h-4 w-4" />
+          </Button>
+          <Button
+            disabled={isBusy}
+            onClick={() => setIsCollapsed((value) => !value)}
+            size="icon"
+            type="button"
+            variant="ghost"
+          >
+            {isCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+          </Button>
+        </div>
+
+        {!isCollapsed ? (
+          <div className="flex w-[270px] flex-col gap-3 p-3">
+            <div className="space-y-1 border-b border-border/70 pb-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Active Workspace
+              </p>
+              <p className="truncate text-sm font-semibold text-foreground">
+                {displayedActiveWorkspace?.name ?? "Loading..."}
+              </p>
+              <p className="truncate text-xs text-muted-foreground">
+                Environment: {displayedActiveEnvironment?.name ?? "n/a"}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Workspaces
+              </p>
+              <div className="space-y-1">
+                {(context?.workspaces ?? []).map((workspace) => (
+                  <button
+                    className={`flex w-full items-center gap-2 rounded-lg border px-2 py-2 text-left text-sm transition-colors ${
+                      workspace.id === displayedActiveWorkspaceId
+                        ? "border-primary/60 bg-primary/15 text-foreground"
+                        : "border-border/70 bg-background/50 text-muted-foreground hover:text-foreground"
+                    }`}
+                    disabled={isBusy}
+                    key={workspace.id}
+                    onClick={() => {
+                      void handleWorkspaceSelect(workspace.id);
+                    }}
+                    type="button"
+                  >
+                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-secondary text-[10px] font-bold">
+                      {pendingWorkspaceId === workspace.id ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        getWorkspaceMonogram(workspace.name)
+                      )}
+                    </span>
+                    <span className="truncate">{workspace.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Environment
+              </p>
+              <Select
+                disabled={!context || isBusy}
+                value={displayedActiveEnvironmentId}
+                onValueChange={(environmentId) => {
+                  void handleEnvironmentSelect(environmentId);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select environment" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(context?.environments ?? []).map((environment) => (
+                    <SelectItem key={environment.id} value={environment.id}>
+                      {environment.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="mt-auto grid grid-cols-2 gap-2 pt-1">
+              <Button disabled={isBusy} onClick={() => setIsManageOpen(true)} type="button" variant="secondary">
+                Manage
+              </Button>
+              <Button
+                disabled={isBusy}
+                onClick={() => {
+                  void refreshContext();
+                }}
+                type="button"
+                variant="outline"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Refresh
+              </Button>
+            </div>
+          </div>
+        ) : null}
+      </aside>
+
+      {(pendingWorkspaceId || pendingEnvironmentId) ? (
+        <div className="inline-flex items-center gap-2 rounded-lg border border-border/70 bg-card/70 px-2 py-1 text-xs text-muted-foreground">
+          <Loader2 className="h-3 w-3 animate-spin" />
+          Applying workspace changes...
+        </div>
       ) : null}
 
       {error ? (
@@ -312,18 +570,15 @@ export const WorkspaceControls = ({ onActiveWorkspaceChange }: WorkspaceControls
                       <div className="flex items-center justify-between rounded border border-border px-3 py-2" key={workspace.id}>
                         <div className="flex items-center gap-2">
                           <span className="text-sm">{workspace.name}</span>
-                          {workspace.id === context.activeWorkspaceId ? <Badge>Active</Badge> : null}
+                          {workspace.id === displayedActiveWorkspaceId ? <Badge>Active</Badge> : null}
                         </div>
                         <Button
-                          disabled={isMutating || workspace.id === context.activeWorkspaceId}
+                          disabled={isMutating || workspace.id === displayedActiveWorkspaceId}
                           size="sm"
                           type="button"
                           variant="secondary"
                           onClick={() => {
-                            void mutateContext(
-                              () => activateWorkspace(workspace.id),
-                              "Active workspace updated.",
-                            );
+                            void handleWorkspaceSelect(workspace.id);
                           }}
                         >
                           Activate
@@ -377,19 +632,16 @@ export const WorkspaceControls = ({ onActiveWorkspaceChange }: WorkspaceControls
                       >
                         <div className="flex items-center gap-2">
                           <span className="text-sm">{environment.name}</span>
-                          {environment.id === context.activeEnvironmentId ? <Badge>Active</Badge> : null}
+                          {environment.id === displayedActiveEnvironmentId ? <Badge>Active</Badge> : null}
                           {environment.isDefault ? <Badge variant="secondary">Default</Badge> : null}
                         </div>
                         <Button
-                          disabled={isMutating || environment.id === context.activeEnvironmentId}
+                          disabled={isMutating || environment.id === displayedActiveEnvironmentId}
                           size="sm"
                           type="button"
                           variant="secondary"
                           onClick={() => {
-                            void mutateContext(
-                              () => activateEnvironment(context.activeWorkspaceId, environment.id),
-                              "Active environment updated.",
-                            );
+                            void handleEnvironmentSelect(environment.id);
                           }}
                         >
                           Activate
@@ -454,7 +706,9 @@ export const WorkspaceControls = ({ onActiveWorkspaceChange }: WorkspaceControls
                 </div>
 
                 <div className="space-y-2 rounded-lg border border-border p-3">
-                  <p className="text-sm font-medium">Environment values ({activeEnvironment?.name ?? "n/a"})</p>
+                  <p className="text-sm font-medium">
+                    Environment values ({displayedActiveEnvironment?.name ?? "n/a"})
+                  </p>
 
                   {context.variables.length === 0 ? (
                     <p className="text-sm text-muted-foreground">No variables yet.</p>

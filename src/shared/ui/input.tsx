@@ -1,8 +1,8 @@
 import * as React from "react";
 import { cn } from "@/shared/lib/utils";
 
-function Input({ className, type, ...props }: React.ComponentProps<"input">) {
-  return (
+const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
+  ({ className, type, ...props }, ref) => (
     <input
       className={cn(
         "flex h-9 w-full min-w-0 rounded-md border border-input bg-background px-3 py-1 text-base text-foreground shadow-xs transition-[color,box-shadow] outline-none",
@@ -10,10 +10,13 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
         className,
       )}
       data-slot="input"
+      ref={ref}
       type={type}
       {...props}
     />
-  );
-}
+  ),
+);
+
+Input.displayName = "Input";
 
 export { Input };

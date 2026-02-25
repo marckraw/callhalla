@@ -11,26 +11,48 @@ type RequestConsoleProps = {
 
 export const RequestConsole = ({ userEmail }: RequestConsoleProps) => {
   const [activeWorkspaceId, setActiveWorkspaceId] = useState("");
+  const [variableSuggestions, setVariableSuggestions] = useState<string[]>([]);
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-[1500px] flex-col gap-6 px-4 py-8 sm:px-8">
-      <header className="space-y-3">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="inline-flex rounded-full border border-border bg-secondary px-3 py-1 text-xs uppercase tracking-[0.18em] text-muted-foreground">
-            Callhalla v0.3
-          </p>
-          <div className="flex items-center gap-3">
-            <p className="text-sm text-muted-foreground">{userEmail}</p>
-            <SignOutButton />
+    <main className="flex min-h-screen w-full flex-col p-3 sm:p-4">
+      <div className="grid min-h-[calc(100vh-1.5rem)] w-full gap-4 lg:grid-cols-[auto_minmax(0,1fr)]">
+        <WorkspaceControls
+          onActiveWorkspaceChange={setActiveWorkspaceId}
+          onVariableSuggestionsChange={setVariableSuggestions}
+        />
+
+        <section className="flex min-h-0 flex-col gap-4">
+          <header className="rounded-2xl border border-border/70 bg-card/70 p-4 shadow-sm backdrop-blur sm:p-6">
+            <div className="space-y-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="inline-flex w-fit rounded-full border border-border bg-secondary px-3 py-1 text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                  Callhalla v0.3
+                </p>
+                <div className="flex items-center gap-3">
+                  <p className="max-w-[260px] truncate text-sm text-muted-foreground">{userEmail}</p>
+                  <SignOutButton />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+                  Send your requests to Callhalla
+                </h1>
+                <p className="max-w-3xl text-sm text-muted-foreground sm:text-base">
+                  Workspaces isolate saved requests and environments. Variable placeholders resolve
+                  server-side before dispatch.
+                </p>
+              </div>
+            </div>
+          </header>
+
+          <div className="min-h-0 flex-1">
+            <ApiRequestWorkbench
+              key={activeWorkspaceId || "workspace-default"}
+              variableSuggestions={variableSuggestions}
+            />
           </div>
-        </div>
-        <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">Send your requests to Callhalla</h1>
-        <p className="max-w-3xl text-base text-muted-foreground sm:text-lg">
-          Workspaces now isolate saved requests and environments. Variables resolve server-side before each request.
-        </p>
-        <WorkspaceControls onActiveWorkspaceChange={setActiveWorkspaceId} />
-      </header>
-      <ApiRequestWorkbench key={activeWorkspaceId || "workspace-default"} />
+        </section>
+      </div>
     </main>
   );
 };

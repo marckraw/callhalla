@@ -36,8 +36,8 @@ export const SavedRequestsPanel = ({
   onDelete,
 }: SavedRequestsPanelProps) => {
   return (
-    <Card className="border-border/80 bg-card/90">
-      <CardContent className="space-y-3 p-4">
+    <Card className="border-border/80 bg-card/90 shadow-sm">
+      <CardContent className="space-y-3 p-4 sm:p-5">
         <div className="flex items-center justify-between gap-2">
           <div>
             <h2 className="text-sm font-semibold">Saved Requests</h2>
@@ -63,31 +63,38 @@ export const SavedRequestsPanel = ({
         ) : null}
 
         {items.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
+          <div className="rounded-xl border border-dashed border-border/80 bg-background/25 p-3 text-sm text-muted-foreground">
             {totalCount === 0 ? "No saved requests yet." : "No requests match your search."}
-          </p>
+          </div>
         ) : (
-          <div className="space-y-2">
+          <div className="max-h-[52vh] space-y-2 overflow-auto pr-1 md:max-h-[calc(100vh-18rem)]">
             {items.map((item) => (
-              <div className="space-y-2 rounded-xl border border-border bg-background p-3" key={item.id}>
-                <div className="flex items-center justify-between gap-2">
-                  <div>
-                    <p className="text-sm font-semibold">{item.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {item.draft.method} {item.draft.url}
-                    </p>
+              <div className="space-y-3 rounded-xl border border-border/70 bg-background/65 p-3" key={item.id}>
+                <div className="space-y-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-sm font-semibold leading-snug">{item.name}</p>
+                    <Badge className="shrink-0 font-semibold" variant="secondary">
+                      {item.draft.method}
+                    </Badge>
                   </div>
-                  <p className="text-xs text-muted-foreground">{formatUpdatedAt(item.updatedAt)}</p>
+                  <p className="break-all text-xs text-muted-foreground">
+                    {item.draft.url}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Updated {formatUpdatedAt(item.updatedAt)}
+                  </p>
                 </div>
                 {item.tags.length > 0 ? (
-                  <div className="flex flex-wrap gap-1">
+                  <div className="flex flex-wrap gap-1.5">
                     {item.tags.map((tag) => (
                       <Badge className="font-normal" key={`${item.id}-${tag}`} variant="secondary">
                         #{tag}
                       </Badge>
                     ))}
                   </div>
-                ) : null}
+                ) : (
+                  <p className="text-xs text-muted-foreground">No tags</p>
+                )}
                 <div className="flex gap-2">
                   <Button onClick={() => onLoad(item)} size="sm" type="button">
                     Load

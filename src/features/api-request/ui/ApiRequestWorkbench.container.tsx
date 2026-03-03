@@ -32,22 +32,24 @@ const createHeaderRow = (): HeaderRow => ({
   enabled: true,
 });
 
-const initialDraft: RequestDraft = {
+const createInitialDraft = (): RequestDraft => ({
   method: "GET",
   url: "",
   headers: [createHeaderRow()],
   bodyMode: "none",
   bodyText: "",
-};
+});
 
 type ApiRequestWorkbenchProps = {
+  activeWorkspaceId: string | null;
   variableSuggestions?: string[];
 };
 
 export const ApiRequestWorkbench = ({
+  activeWorkspaceId,
   variableSuggestions = [],
 }: ApiRequestWorkbenchProps) => {
-  const [draft, setDraft] = useState<RequestDraft>(initialDraft);
+  const [draft, setDraft] = useState<RequestDraft>(() => createInitialDraft());
   const [saveName, setSaveName] = useState("");
   const [saveTagsText, setSaveTagsText] = useState("");
   const [editingSavedRequestId, setEditingSavedRequestId] = useState<string | null>(null);
@@ -74,12 +76,12 @@ export const ApiRequestWorkbench = ({
     [savedRequests, searchQuery],
   );
 
-  const refreshSavedRequests = async () => {
+  const refreshSavedRequests = async (workspaceId: string) => {
     setSavedRequestsError(null);
     setIsSavedRequestsLoading(true);
 
     try {
-      const items = await listSavedRequests();
+      const items = await listSavedRequests({ workspaceId });
       setSavedRequests(items);
     } catch (error) {
       setSavedRequestsError(error instanceof Error ? error.message : "Unable to load saved requests.");
@@ -89,8 +91,21 @@ export const ApiRequestWorkbench = ({
   };
 
   useEffect(() => {
-    void refreshSavedRequests();
-  }, []);
+    if (!activeWorkspaceId) {
+      return;
+    }
+
+    setDraft(createInitialDraft());
+    setSaveName("");
+    setSaveTagsText("");
+    setEditingSavedRequestId(null);
+    setSearchQuery("");
+    setValidationErrors([]);
+    setRuntimeError(null);
+    setResponse(null);
+
+    void refreshSavedRequests(activeWorkspaceId);
+  }, [activeWorkspaceId]);
 
   const handleMethodChange = (method: HttpMethod) => {
     setDraft((current) => ({ ...current, method }));
@@ -267,7 +282,11 @@ export const ApiRequestWorkbench = ({
         onLoad={handleLoad}
         onSearchQueryChange={setSearchQuery}
         onRefresh={() => {
-          void refreshSavedRequests();
+          if (!activeWorkspaceId) {
+            return;
+          }
+
+          void refreshSavedRequests(activeWorkspaceId);
         }}
       />
     </div>

@@ -10,7 +10,7 @@ type RequestConsoleProps = {
 };
 
 export const RequestConsole = ({ userEmail }: RequestConsoleProps) => {
-  const [activeWorkspaceId, setActiveWorkspaceId] = useState("");
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null);
   const [variableSuggestions, setVariableSuggestions] = useState<string[]>([]);
 
   return (
@@ -47,7 +47,7 @@ export const RequestConsole = ({ userEmail }: RequestConsoleProps) => {
 
           <div className="min-h-0 flex-1">
             <ApiRequestWorkbench
-              key={activeWorkspaceId || "workspace-default"}
+              activeWorkspaceId={activeWorkspaceId}
               variableSuggestions={variableSuggestions}
             />
           </div>

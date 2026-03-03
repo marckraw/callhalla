@@ -203,7 +203,10 @@ export const WorkspaceControls = ({
     window.localStorage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, String(isCollapsed));
   }, [isCollapsed]);
 
-  const mutateContext = async (operation: () => Promise<WorkspaceContext>, successMessage?: string) => {
+  const mutateContext = async (
+    operation: () => Promise<WorkspaceContext>,
+    successMessage?: string,
+  ): Promise<boolean> => {
     setIsMutating(true);
     setError(null);
 
@@ -213,11 +216,13 @@ export const WorkspaceControls = ({
       if (successMessage) {
         toast.success(successMessage);
       }
+      return true;
     } catch (mutationError) {
       const message =
         mutationError instanceof Error ? mutationError.message : "Unable to update workspace context.";
       setError(message);
       toast.error(message);
+      return false;
     } finally {
       setIsMutating(false);
     }
@@ -230,14 +235,20 @@ export const WorkspaceControls = ({
       return;
     }
 
+    const previousWorkspaceId = displayedActiveWorkspaceId;
     setPendingWorkspaceId(workspaceId);
     setPendingEnvironmentId(null);
+    onActiveWorkspaceChange?.(workspaceId);
 
     try {
-      await mutateContext(
+      const didSucceed = await mutateContext(
         () => activateWorkspace(workspaceId),
         "Active workspace updated.",
       );
+
+      if (!didSucceed && previousWorkspaceId) {
+        onActiveWorkspaceChange?.(previousWorkspaceId);
+      }
     } finally {
       setPendingWorkspaceId(null);
     }
@@ -494,7 +505,8 @@ export const WorkspaceControls = ({
       ) : null}
 
       <Dialog open={isManageOpen} onOpenChange={setIsManageOpen}>
-        <DialogContent className="max-h-[85vh] max-w-4xl overflow-y-auto">
+        {isManageOpen ? (
+          <DialogContent className="max-h-[85vh] max-w-4xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Workspace Manager</DialogTitle>
           </DialogHeader>
@@ -896,7 +908,8 @@ export const WorkspaceControls = ({
           ) : (
             <p className="text-sm text-muted-foreground">Loading workspace context...</p>
           )}
-        </DialogContent>
+          </DialogContent>
+        ) : null}
       </Dialog>
     </div>
   );

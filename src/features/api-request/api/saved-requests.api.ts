@@ -15,8 +15,18 @@ const readErrorMessage = async (response: Response) => {
   }
 };
 
-export const listSavedRequests = async (): Promise<SavedRequest[]> => {
-  const response = await fetch("/api/saved-requests", {
+export const listSavedRequests = async (
+  input?: {
+    workspaceId?: string;
+  },
+): Promise<SavedRequest[]> => {
+  const searchParams = new URLSearchParams();
+  if (input?.workspaceId) {
+    searchParams.set("workspaceId", input.workspaceId);
+  }
+
+  const query = searchParams.toString();
+  const response = await fetch(`/api/saved-requests${query ? `?${query}` : ""}`, {
     method: "GET",
     cache: "no-store",
   });

@@ -84,7 +84,9 @@ const toSavedRequest = (row: SavedRequestRow): SavedRequest => ({
 const projection =
   "id,user_id,workspace_id,name,tags,method,url,headers,body_mode,body_text,created_at,updated_at";
 
-export async function GET() {
+const workspaceIdQuerySchema = z.string().uuid();
+
+export async function GET(request: Request) {
   const { supabase, user } = await getAuthenticatedServerClient();
 
   if (!supabase) {
@@ -105,12 +107,31 @@ export async function GET() {
     );
   }
 
-  const activeWorkspaceId = await getActiveWorkspaceId(supabase, user.id);
+  let workspaceId: string;
+  const url = new URL(request.url);
+  const workspaceIdParam = url.searchParams.get("workspaceId");
+
+  if (workspaceIdParam) {
+    const parsedWorkspaceId = workspaceIdQuerySchema.safeParse(workspaceIdParam);
+    if (!parsedWorkspaceId.success) {
+      return NextResponse.json(
+        {
+          error: "Invalid workspace id.",
+        },
+        { status: 400 },
+      );
+    }
+
+    workspaceId = parsedWorkspaceId.data;
+  } else {
+    workspaceId = await getActiveWorkspaceId(supabase, user.id);
+  }
 
   const { data, error } = await supabase
     .from("saved_requests")
     .select(projection)
-    .eq("workspace_id", activeWorkspaceId)
+    .eq("workspace_id", workspaceId)
+    .eq("user_id", user.id)
     .order("updated_at", { ascending: false });
 
   if (error) {

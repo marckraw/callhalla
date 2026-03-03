@@ -213,20 +213,24 @@ const listWorkspaceVariablesForEnvironment = async (
   workspaceId: string,
   environmentId: string,
 ): Promise<WorkspaceVariable[]> => {
-  const { data: definitions, error: definitionsError } = await supabase
-    .from("workspace_variable_definitions")
-    .select("id,key,description,is_secret")
-    .eq("workspace_id", workspaceId)
-    .order("key", { ascending: true });
+  const [
+    { data: definitions, error: definitionsError },
+    { data: values, error: valuesError },
+  ] = await Promise.all([
+    supabase
+      .from("workspace_variable_definitions")
+      .select("id,key,description,is_secret")
+      .eq("workspace_id", workspaceId)
+      .order("key", { ascending: true }),
+    supabase
+      .from("environment_variable_values")
+      .select("variable_definition_id,value,enabled")
+      .eq("environment_id", environmentId),
+  ]);
 
   if (definitionsError) {
     throw new Error(definitionsError.message || "Unable to list workspace variables.");
   }
-
-  const { data: values, error: valuesError } = await supabase
-    .from("environment_variable_values")
-    .select("variable_definition_id,value,enabled")
-    .eq("environment_id", environmentId);
 
   if (valuesError) {
     throw new Error(valuesError.message || "Unable to list environment variable values.");
@@ -280,8 +284,10 @@ export const ensureWorkspaceContext = async (
   supabase: SupabaseClient,
   userId: string,
 ): Promise<WorkspaceContext> => {
-  let workspaces = await listWorkspaces(supabase, userId);
-  let settings = await getUserSettings(supabase, userId);
+  let [workspaces, settings] = await Promise.all([
+    listWorkspaces(supabase, userId),
+    getUserSettings(supabase, userId),
+  ]);
 
   if (workspaces.length === 0) {
     const created = await createDefaultWorkspaceWithEnvironment(supabase, userId);
@@ -310,15 +316,16 @@ export const ensureWorkspaceContext = async (
     || settings.active_workspace_id !== activeWorkspaceId
     || settings.active_environment_id !== activeEnvironmentId;
 
-  if (shouldPersistSettings) {
-    await upsertUserSettings(supabase, userId, activeWorkspaceId, activeEnvironmentId);
-  }
-
-  const variables = await listWorkspaceVariablesForEnvironment(
-    supabase,
-    activeWorkspaceId,
-    activeEnvironmentId,
-  );
+  const [variables] = await Promise.all([
+    listWorkspaceVariablesForEnvironment(
+      supabase,
+      activeWorkspaceId,
+      activeEnvironmentId,
+    ),
+    shouldPersistSettings
+      ? upsertUserSettings(supabase, userId, activeWorkspaceId, activeEnvironmentId)
+      : Promise.resolve(),
+  ]);
 
   return {
     workspaces: workspaces.map(toWorkspace),
